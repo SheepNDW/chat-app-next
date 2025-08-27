@@ -97,7 +97,7 @@ export default function AppSidebar({ isOpen }: AppSidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed top-16 left-0 bottom-0 w-64 transition-transform duration-300 z-40 bg-muted border-r border-border',
+        'fixed top-16 left-0 bottom-0 w-64 transition-transform duration-300 z-40 bg-muted dark:bg-background border-r border-border',
         !isOpen && '-translate-x-full'
       )}
     >
