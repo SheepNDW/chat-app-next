@@ -16,7 +16,7 @@ export default function RootPageLayout({
   };
 
   return (
-    <div className="h-screen bg-background">
+    <div className="h-[calc(100vh-4rem)] bg-background dark:bg-muted">
       <AppHeader onToggleSidebar={handleToggleSidebar} />
       <AppSidebar isOpen={isSidebarOpen} />
       <main
