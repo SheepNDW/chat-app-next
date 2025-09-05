@@ -1,22 +1,16 @@
 import {
-  getMessagesByChatId,
   createMessageForChat,
+  getMessagesByChatId,
 } from '@/lib/actions/chat.actions';
 import { createOpenAIModel, streamChatResponse } from '@/lib/ai-service';
 import { NextRequest } from 'next/server';
-import { z } from 'zod';
-
-const ParamsSchema = z.object({ id: z.uuid() });
 
 export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  ctx: RouteContext<'/api/chats/[id]/messages/stream'>
 ) {
   try {
-    const parsed = ParamsSchema.safeParse(params);
-    if (!parsed.success) {
-      return Response.json({ error: 'Invalid chat id' }, { status: 400 });
-    }
+    const { id } = await ctx.params;
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -26,7 +20,7 @@ export async function POST(
       );
     }
 
-    const history = await getMessagesByChatId(parsed.data.id);
+    const history = await getMessagesByChatId(id);
     if (!history.length) {
       return Response.json(
         { error: 'No messages for this chat' },
@@ -48,7 +42,7 @@ export async function POST(
         if (full.trim()) {
           try {
             await createMessageForChat({
-              chatId: parsed.data.id,
+              chatId: id,
               content: full,
               role: 'assistant',
             });
