@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { addMessage } from '@/lib/actions/chat.actions';
 import type { ChatWithMessages, Message } from '@/types';
 import { ArrowDown, FolderPlus } from 'lucide-react';
 import { useLayoutEffect, useState } from 'react';
@@ -35,9 +34,7 @@ function ChatWindow({ messages = [], chat, chatId }: ChatWindowProps) {
     setIsTyping(true);
 
     try {
-      const updatedMessages = await addMessage(chatId, message);
-
-      setCurrentMessages(updatedMessages);
+      //
     } catch (error) {
       console.error('Failed to send message:', error);
       setCurrentMessages((prev) =>
