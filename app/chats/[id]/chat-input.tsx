@@ -5,16 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
 
 interface ChatInputProps {
-  isStreaming?: boolean;
+  isBusy?: boolean; // true when streaming or external typing state blocks sending
   onSendMessage: (message: string) => void;
 }
 
-function ChatInput({ isStreaming = false, onSendMessage }: ChatInputProps) {
+function ChatInput({ isBusy = false, onSendMessage }: ChatInputProps) {
   const [newMessage, setNewMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim() || isStreaming) return;
+    if (!newMessage.trim() || isBusy) return;
     onSendMessage(newMessage.trim());
     setNewMessage('');
   };
@@ -41,10 +41,10 @@ function ChatInput({ isStreaming = false, onSendMessage }: ChatInputProps) {
   }, [newMessage]);
 
   useEffect(() => {
-    if (!isStreaming) {
+    if (!isBusy) {
       textareaRef.current?.focus();
     }
-  }, [isStreaming]);
+  }, [isBusy]);
 
   return (
     <form
@@ -63,14 +63,14 @@ function ChatInput({ isStreaming = false, onSendMessage }: ChatInputProps) {
         }}
         onKeyDown={handleKeyDown}
         className="w-full p-0 mr-6 resize-none bg-transparent outline-none border-none text-foreground disabled:cursor-not-allowed disabled:opacity-50 scrollbar-none"
-        disabled={isStreaming}
+        disabled={isBusy}
         rows={1}
         placeholder="Type your message..."
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       />
       <Button
         type="submit"
-        disabled={!newMessage.trim() || isStreaming}
+        disabled={!newMessage.trim() || isBusy}
         size="icon"
         className="absolute right-3 bottom-3 rounded-full size-8"
       >

@@ -41,7 +41,6 @@ export async function getChatById(
       project: true,
       messages: {
         orderBy: { createdAt: 'asc' },
-        take: 1,
       },
     },
   });
