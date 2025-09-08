@@ -32,7 +32,7 @@ function ChatWindow() {
       ref={scrollContainer}
       className="overflow-y-auto w-full box-border flex-1 min-h-0"
     >
-      <div className="max-w-[800px] px-4 mx-auto h-[calc(100%-4rem)]">
+      <div className="max-w-[800px] px-4 mx-auto h-full">
         {!messages?.length ? (
           <div className="flex items-center justify-center flex-1 min-h-full">
             <div className="bg-card border border-border rounded-lg p-8 w-full flex flex-col gap-8">
