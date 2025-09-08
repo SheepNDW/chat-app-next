@@ -108,7 +108,7 @@ export async function createChat(data: {
 
 export async function updateChat(
   id: string,
-  data: { title?: string; projectId?: string }
+  data: { title?: string; projectId?: string; updatedAt?: Date }
 ) {
   return await prisma.chat.update({
     where: {

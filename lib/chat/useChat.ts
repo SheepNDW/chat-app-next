@@ -1,6 +1,6 @@
 import type { Message } from '@/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { createMessageForChat } from '../actions/chat.actions';
+import { createMessageForChat, updateChat } from '../actions/chat.actions';
 import { chatReducer, createInitialState } from './reducer';
 import type { ChatAction, UseChatOptions } from './types';
 
@@ -121,6 +121,8 @@ export function useChat(chatId: string, options: UseChatOptions = {}) {
           type: 'ERROR',
           payload: (e as Error).message || 'Failed to send',
         });
+      } finally {
+        await updateChat(chatId, { updatedAt: new Date() });
       }
     },
     [chatId, state.messages, stream]
