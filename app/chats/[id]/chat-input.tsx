@@ -48,7 +48,7 @@ function ChatInput({ isBusy = false, onSendMessage }: ChatInputProps) {
 
   return (
     <form
-      className="relative flex items-center justify-center transition-all duration-150 ease-in-out border border-border rounded-[1.8rem] overflow-hidden p-4 pr-8 pl-5 bg-background hover:shadow-md focus-within:shadow-md w-full"
+      className="relative flex items-center justify-center transition-all duration-150 ease-in-out border border-border rounded-[1.8rem] overflow-hidden p-4 pr-8 pl-5 bg-background dark:bg-muted hover:shadow-md focus-within:shadow-md w-full"
       onSubmit={(e) => {
         e.preventDefault();
         handleSendMessage();
