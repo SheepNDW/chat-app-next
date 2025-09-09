@@ -4,7 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { getAllChats } from '@/lib/actions/chat.actions';
 import { getAllProjects } from '@/lib/actions/project.actions';
 
-export default async function RootPageLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
