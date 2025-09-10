@@ -6,6 +6,7 @@ import {
   MessageCoreSchema,
   ChatWithProjectAndMessagesSchema,
   MessageRoleSchema,
+  ProjectWithChatsSchema,
 } from '@/lib/schemas/api';
 
 // Core Types
@@ -17,3 +18,4 @@ export type MessageRole = z.infer<typeof MessageRoleSchema>;
 
 // Endpoint response types
 export type ChatWithMessages = z.infer<typeof ChatWithProjectAndMessagesSchema>;
+export type ProjectWithChats = z.infer<typeof ProjectWithChatsSchema>;

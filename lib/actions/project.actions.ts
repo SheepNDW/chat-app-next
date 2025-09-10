@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import type { Project } from '@/types';
+import type { Project, ProjectWithChats } from '@/types';
 
 export async function getAllProjects(): Promise<Project[]> {
   return await prisma.project.findMany({
@@ -16,9 +16,22 @@ export async function getAllProjectsByUser(userId: string): Promise<Project[]> {
   });
 }
 
-export async function getProjectById(id: string): Promise<Project | null> {
+export async function getProjectById(
+  id: string
+): Promise<ProjectWithChats | null> {
   return await prisma.project.findFirst({
     where: { id },
+    include: {
+      chats: {
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      },
+    },
   });
 }
 
