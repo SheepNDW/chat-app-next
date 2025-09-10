@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
   experimental: {
     typedEnv: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

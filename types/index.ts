@@ -19,3 +19,11 @@ export type MessageRole = z.infer<typeof MessageRoleSchema>;
 // Endpoint response types
 export type ChatWithMessages = z.infer<typeof ChatWithProjectAndMessagesSchema>;
 export type ProjectWithChats = z.infer<typeof ProjectWithChatsSchema>;
+
+export interface GitHubUser {
+  id: number;
+  login: string;
+  name: string | null;
+  email: string;
+  avatar: string;
+}
