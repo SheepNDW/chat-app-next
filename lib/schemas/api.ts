@@ -46,3 +46,11 @@ export const ChatWithProjectAndMessagesSchema = ChatCoreSchema.extend({
   project: ProjectCoreSchema.nullable(),
   messages: z.array(MessageCoreSchema),
 });
+
+export const ProjectWithChatsSchema = ProjectCoreSchema.extend({
+  chats: z.array(
+    ChatCoreSchema.extend({
+      messages: z.array(MessageCoreSchema),
+    })
+  ),
+});
