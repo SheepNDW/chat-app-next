@@ -7,5 +7,5 @@ export async function githubSignIn() {
 }
 
 export async function signOutUser() {
-  await signOut();
+  await signOut({ redirectTo: '/' });
 }

@@ -1,8 +1,7 @@
-'use client';
-
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { APP_NAME } from '@/lib/constants';
-import ModeToggle from './mode-toggle';
+import ModeToggle from './header/mode-toggle';
+import ProfileMenu from './header/ProfileMenu';
 
 export default function AppHeader() {
   return (
@@ -13,11 +12,7 @@ export default function AppHeader() {
 
       <div className="flex items-center gap-4">
         <ModeToggle />
-
-        {/* TODO: Add ProfileMenu component */}
-        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-          <span className="text-primary-foreground text-sm font-medium">U</span>
-        </div>
+        <ProfileMenu />
       </div>
     </header>
   );
