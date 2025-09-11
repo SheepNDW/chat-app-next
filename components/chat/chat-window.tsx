@@ -7,6 +7,7 @@ import ChatInput from './chat-input';
 import { useChatScroll } from './useChatScroll';
 
 import { useChatContext } from '@/lib/chat/ChatProvider';
+import MarkdownRender from './markdown-render';
 
 function ChatWindow() {
   const { messages, sendMessage, isStreaming, chat } = useChatContext();
@@ -64,12 +65,16 @@ function ChatWindow() {
                   className={`p-4 rounded-lg transition-all duration-200 ${
                     message.role === 'user'
                       ? 'bg-muted dark:bg-zinc-700 border border-border w-[70%] self-end'
-                      : 'w-full py-4 px-0 border-none bg-none'
+                      : 'w-full py-4 px-0 border-none'
                   }`}
                 >
-                  <div className="text-foreground break-words whitespace-pre-wrap">
-                    {message.content}
-                  </div>
+                  {message.role === 'assistant' ? (
+                    <MarkdownRender content={message.content} />
+                  ) : (
+                    <div className="text-foreground break-words whitespace-pre-wrap">
+                      {message.content}
+                    </div>
+                  )}
                 </div>
               ))}
 
