@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@source "@/node_modules/streamdown/dist/index.js";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -76,6 +77,11 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+
+  [data-code-block-container] {
+    background-color: var(--color-gray-100);
+    margin-top: 0.5rem;
+  }
 }
 
 .dark {
@@ -110,6 +116,11 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+
+  [data-code-block-container] {
+    background-color: var(--card);
+    margin-top: 0.5rem;
+  }
 }
 
 @layer base {

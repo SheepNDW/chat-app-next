@@ -1,5 +1,5 @@
 import { getChatById } from '@/lib/actions/chat.actions';
-import ChatWindow from './chat-window';
+import ChatWindow from '@/components/chat/chat-window';
 import { ChatProvider } from '@/lib/chat/ChatProvider';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';

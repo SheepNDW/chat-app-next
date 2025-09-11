@@ -1,4 +1,4 @@
-import ChatWindow from '@/app/(dashboard)/chats/[id]/chat-window';
+import ChatWindow from '@/components/chat/chat-window';
 import { getChatById, getMessagesByChatId } from '@/lib/actions/chat.actions';
 import { getProjectById } from '@/lib/actions/project.actions';
 import { ChatProvider } from '@/lib/chat/ChatProvider';
