@@ -1,4 +1,5 @@
-import { signIn } from '@/auth';
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Github } from '@/components/ui/github';
 import { githubSignIn } from '@/lib/actions/user.action';
@@ -13,7 +14,7 @@ export default function LoginForm() {
       <Button
         size="lg"
         type="submit"
-        className="w-full gap-2"
+        className="gap-2 cursor-pointer disabled:cursor-not-allowed"
         disabled={pending}
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Github />}
