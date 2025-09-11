@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import github from 'next-auth/providers/github';
-import { findOrCreateUser } from '@/lib/user-tools';
+import { findOrCreateUser, findUserByProviderId } from '@/lib/user-tools';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -30,9 +30,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     /** Add user id into JWT */
     async jwt({ token, profile }) {
-      // profile only available on first sign-in
       if (profile?.id) {
         token.uid = String(profile.id);
+
+        const user = await findUserByProviderId(String(profile.id));
+        if (user) {
+          token.dbUserId = user.id;
+        }
       }
       return token;
     },
@@ -40,6 +44,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user && token.uid) {
         (session.user as any).id = token.uid;
+        session.user.dbUserId = token.dbUserId as string;
       }
       return session;
     },
