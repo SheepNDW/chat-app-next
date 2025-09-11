@@ -4,7 +4,6 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { CreateChatSchema } from '@/lib/schemas/validators';
 import type { ChatWithMessages, Message, MessageRole } from '@/types';
-import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export async function getAllChats() {
@@ -119,7 +118,7 @@ export async function updateChat(
   id: string,
   data: { title?: string; projectId?: string; updatedAt?: Date }
 ) {
-  return await prisma.chat.update({
+  const updated = await prisma.chat.update({
     where: {
       id,
     },
@@ -131,6 +130,8 @@ export async function updateChat(
       },
     },
   });
+
+  return updated;
 }
 
 export async function deleteChat(id: string) {
@@ -151,10 +152,6 @@ export async function createChatAndRedirect(
   if (!chat || !chat.id) {
     throw new Error('Failed to create chat');
   }
-
-  // Refresh chat list paths
-  revalidatePath('/chats');
-  if (chat.projectId) revalidatePath(`/projects/${chat.projectId}`);
 
   redirect(
     chat.projectId

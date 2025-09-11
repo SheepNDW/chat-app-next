@@ -7,6 +7,7 @@ export function createInitialState(partial: Partial<ChatState>): ChatState {
     isSending: false,
     isStreaming: false,
     error: undefined,
+    chat: partial.chat || null,
   };
 }
 
@@ -88,6 +89,12 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         isStreaming: false,
         error: undefined,
       };
+    case 'SET_CHAT':
+      return { ...state, chat: action.payload.chat };
+    case 'UPDATE_TITLE':
+      return state.chat
+        ? { ...state, chat: { ...state.chat, title: action.payload.title } }
+        : state;
     default:
       return state;
   }

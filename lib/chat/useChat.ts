@@ -1,4 +1,4 @@
-import type { Message } from '@/types';
+import type { ChatWithMessages, Message } from '@/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { createMessageForChat, updateChat } from '../actions/chat.actions';
 import { chatReducer, createInitialState } from './reducer';
@@ -22,22 +22,47 @@ async function fetchOnce(chatId: string) {
   return json.text as string;
 }
 
+async function generateChatTitle(chatId: string, message: string) {
+  const res = await fetch(`/api/chats/${chatId}/title`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) {
+    console.error('Failed to generate chat title');
+    return;
+  }
+  const data = (await res.json()) as { chat: ChatWithMessages };
+  return data.chat;
+}
+
 export function useChat(chatId: string, options: UseChatOptions = {}) {
-  const { initialMessages = [], stream = true } = options;
+  const { initialMessages = [], stream = true, chat: initialChat } = options;
   const [state, dispatch] = useReducer(
     chatReducer,
-    createInitialState({ chatId, messages: initialMessages })
+    createInitialState({ chatId, messages: initialMessages, chat: initialChat })
   );
   const abortRef = useRef<AbortController | null>(null);
 
   // Reset when chatId changes
   useEffect(() => {
     dispatch({ type: 'RESET', payload: initialMessages } as ChatAction);
-  }, [chatId]);
+    if (initialChat)
+      dispatch({ type: 'SET_CHAT', payload: { chat: initialChat } });
+  }, [chatId, initialChat]);
 
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim()) return;
+
+      if (state.messages.length === 0) {
+        generateChatTitle(chatId, text).then((chat) => {
+          if (chat?.title) {
+            dispatch({ type: 'UPDATE_TITLE', payload: { title: chat.title } });
+          }
+        });
+      }
+
       const userMessage: Message = {
         id: 'temp-' + Date.now(),
         chatId,
