@@ -1,4 +1,4 @@
-import type { Message } from '@/types';
+import type { Message, ChatWithMessages } from '@/types';
 
 export interface ChatState {
   chatId: string;
@@ -6,6 +6,7 @@ export interface ChatState {
   isSending: boolean;
   isStreaming: boolean;
   error?: string;
+  chat?: ChatWithMessages | null;
 }
 
 export type ChatAction =
@@ -18,9 +19,12 @@ export type ChatAction =
   | { type: 'COMMIT_ASSISTANT'; payload: { id: string } }
   | { type: 'ROLLBACK'; payload: { tempId: string } }
   | { type: 'ERROR'; payload: string }
-  | { type: 'RESET'; payload?: Message[] };
+  | { type: 'RESET'; payload?: Message[] }
+  | { type: 'SET_CHAT'; payload: { chat: ChatWithMessages } }
+  | { type: 'UPDATE_TITLE'; payload: { title: string } };
 
 export interface UseChatOptions {
   initialMessages?: Message[];
   stream?: boolean;
+  chat?: ChatWithMessages;
 }

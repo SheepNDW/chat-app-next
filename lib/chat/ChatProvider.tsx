@@ -6,14 +6,12 @@ import { useChat } from './useChat';
 interface ChatProviderProps {
   chatId: string;
   initialMessages?: Message[];
-  chat?: ChatWithMessages | undefined;
+  chat?: ChatWithMessages | undefined; // initial chat object
   stream?: boolean;
   children: React.ReactNode;
 }
 
-type ChatContextValue = ReturnType<typeof useChat> & {
-  chat?: ChatWithMessages;
-};
+type ChatContextValue = ReturnType<typeof useChat>;
 const ChatContext = createContext<ChatContextValue | null>(null);
 
 export function ChatProvider({
@@ -23,9 +21,10 @@ export function ChatProvider({
   stream,
   children,
 }: ChatProviderProps) {
-  const chatHook = useChat(chatId, { initialMessages, stream });
-  const value: ChatContextValue = { ...chatHook, chat };
-  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+  const chatHook = useChat(chatId, { initialMessages, stream, chat });
+  return (
+    <ChatContext.Provider value={chatHook}>{children}</ChatContext.Provider>
+  );
 }
 
 export function useChatContext() {
