@@ -1,16 +1,29 @@
+import { auth } from '@/auth';
 import AppHeader from '@/components/shared/app-header';
 import AppSidebar from '@/components/shared/app-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { getAllChats } from '@/lib/actions/chat.actions';
-import { getAllProjects } from '@/lib/actions/project.actions';
+import { getAllChatsByUser } from '@/lib/actions/chat.actions';
+import { getAllProjectsByUser } from '@/lib/actions/project.actions';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const chats = await getAllChats();
-  const projects = await getAllProjects();
+  const session = await auth();
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  const user = session.user;
+  const userId = user?.id || '';
+
+  const [chats, projects] = await Promise.all([
+    getAllChatsByUser(userId),
+    getAllProjectsByUser(userId),
+  ]);
 
   return (
     <SidebarProvider>
