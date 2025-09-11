@@ -1,7 +1,11 @@
 'use server';
 
+import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { CreateChatSchema } from '@/lib/schemas/validators';
 import type { ChatWithMessages, Message, MessageRole } from '@/types';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export async function getAllChats() {
   return await prisma.chat.findMany({
@@ -90,14 +94,19 @@ export async function getMessagesByChatId(chatId: string): Promise<Message[]> {
   });
 }
 
-export async function createChat(data: {
-  title?: string;
-  userId: string;
-  projectId?: string;
-}) {
+export async function createChat(data: { title?: string; projectId?: string }) {
+  const session = await auth();
+  const userId = session?.user?.dbUserId;
+  if (!userId) {
+    redirect('/login');
+  }
+
+  const parsed = CreateChatSchema.parse(data);
+
   return await prisma.chat.create({
     data: {
-      ...data,
+      ...parsed,
+      userId,
     },
     include: {
       project: true,
@@ -128,4 +137,28 @@ export async function deleteChat(id: string) {
   return await prisma.chat.deleteMany({
     where: { id },
   });
+}
+
+/**
+ * Server action: create a chat for current user and redirect to it.
+ * Accepts either a FormData (`<form action=...>`) or direct param object.
+ */
+export async function createChatAndRedirect(
+  options: { projectId?: string } = {}
+) {
+  const chat = await createChat(options);
+
+  if (!chat || !chat.id) {
+    throw new Error('Failed to create chat');
+  }
+
+  // Refresh chat list paths
+  revalidatePath('/chats');
+  if (chat.projectId) revalidatePath(`/projects/${chat.projectId}`);
+
+  redirect(
+    chat.projectId
+      ? `/projects/${chat.projectId}/chats/${chat.id}`
+      : `/chats/${chat.id}`
+  );
 }

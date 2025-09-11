@@ -18,7 +18,7 @@ export default async function DashboardLayout({
   }
 
   const user = session.user;
-  const userId = user?.id || '';
+  const userId = user?.dbUserId || '';
 
   const [chats, projects] = await Promise.all([
     getAllChatsByUser(userId),
