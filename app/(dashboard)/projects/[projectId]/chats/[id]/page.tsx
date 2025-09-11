@@ -3,6 +3,7 @@ import { getChatById, getMessagesByChatId } from '@/lib/actions/chat.actions';
 import { getProjectById } from '@/lib/actions/project.actions';
 import { ChatProvider } from '@/lib/chat/ChatProvider';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 type Props = {
   params: Promise<{ projectId: string; id: string }>;
@@ -23,7 +24,10 @@ export default async function ProjectChatDetailPage({ params }: Props) {
   const { id } = await params;
 
   const chat = await getChatById(id);
-  const messages = await getMessagesByChatId(id);
+
+  if (!chat) notFound();
+
+  const messages = await getMessagesByChatId(chat.id);
 
   return (
     <ChatProvider
