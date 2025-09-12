@@ -5,6 +5,7 @@ import { createChatAndRedirect } from '@/lib/actions/chat.actions';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { ProjectTitle } from './project-title';
 
 export default function ProjectHeader({
   projectName,
@@ -23,9 +24,11 @@ export default function ProjectHeader({
       <div>
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold text-foreground">
-              {projectName}
-            </h2>
+            <ProjectTitle
+              projectId={String(projectId)}
+              name={projectName}
+              canEdit={!id}
+            />
           </div>
           {id && (
             <Link
