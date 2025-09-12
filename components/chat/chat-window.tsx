@@ -8,9 +8,11 @@ import { useChatScroll } from './useChatScroll';
 
 import { useChatContext } from '@/lib/chat/ChatProvider';
 import MarkdownRender from './markdown-render';
+import AssignToProjectModal from './assign-to-project-modal';
 
 function ChatWindow() {
   const { messages, sendMessage, isStreaming, chat } = useChatContext();
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
   const { scrollContainer, showScrollButton, scrollToBottom, pinToBottom } =
@@ -52,9 +54,15 @@ function ChatWindow() {
               <h1 className="text-2xl font-bold text-foreground">
                 {chat?.title || 'Untitled Chat'}
               </h1>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setAssignModalOpen(true)}
+                disabled={!chat?.id || !!chat?.projectId}
+              >
                 <FolderPlus className="size-4" />
-                Assign to Project
+                {chat?.projectId ? 'Assigned' : 'Assign to Project'}
               </Button>
             </div>
 
@@ -103,6 +111,11 @@ function ChatWindow() {
                 isBusy={isStreaming || isTyping}
               />
             </div>
+            <AssignToProjectModal
+              chatId={chat?.id || ''}
+              open={assignModalOpen}
+              onOpenChange={setAssignModalOpen}
+            />
           </>
         )}
       </div>
