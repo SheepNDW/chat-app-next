@@ -26,7 +26,7 @@ export default async function ChatDetailPage({ params }: Props) {
   const messages = chat.messages || [];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-[calc(100%-4rem)] flex flex-col">
       <ChatProvider
         chatId={id}
         initialMessages={messages}

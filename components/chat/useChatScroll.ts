@@ -1,24 +1,31 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-export function useChatScroll() {
+interface UseChatScrollOptions<TMessage = unknown> {
+  messages?: TMessage[]; // current messages array to watch
+  autoPinThreshold?: number; // px distance from bottom considered "near"
+  disableAutoPin?: boolean; // allow opt-out
+}
+
+export function useChatScroll<TMessage = unknown>(
+  options: UseChatScrollOptions<TMessage> = {}
+) {
+  const { messages, autoPinThreshold = 120, disableAutoPin = false } = options;
+
   const scrollContainer = useRef<HTMLDivElement>(null);
+  const messagesWrapperRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
-  // Check if chat is scrolled to bottom
   const checkScrollPosition = useCallback((): void => {
-    if (scrollContainer.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer.current;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 200;
-      setIsAtBottom(atBottom);
-      setShowScrollButton(!atBottom);
-    }
+    if (!scrollContainer.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainer.current;
+    const atBottom = scrollTop + clientHeight >= scrollHeight - 200; // 200px tolerance for button visibility
+    setIsAtBottom(atBottom);
+    setShowScrollButton(!atBottom);
   }, []);
 
-  // Smooth scroll to bottom
   const scrollToBottom = useCallback((immediate = false): void => {
     if (!scrollContainer.current) return;
-
     const targetScrollTop =
       scrollContainer.current.scrollHeight -
       scrollContainer.current.clientHeight;
@@ -44,21 +51,15 @@ export function useChatScroll() {
       if (scrollContainer.current) {
         scrollContainer.current.scrollTop =
           startScrollTop + distance * easeInOutCubic;
-
-        if (progress < 1) {
-          requestAnimationFrame(step);
-        }
+        if (progress < 1) requestAnimationFrame(step);
       }
     }
 
     requestAnimationFrame(step);
   }, []);
 
-  // Pin to bottom when content changes - React optimized version
   const pinToBottom = useCallback((): void => {
     if (!isAtBottom || !scrollContainer.current) return;
-
-    // Use requestAnimationFrame to ensure layout is complete
     requestAnimationFrame(() => {
       if (scrollContainer.current) {
         scrollContainer.current.scrollTop =
@@ -67,25 +68,61 @@ export function useChatScroll() {
     });
   }, [isAtBottom]);
 
-  // Add scroll event listener
+  // Initial attach of scroll listener + initial jump
   useEffect(() => {
     const container = scrollContainer.current;
-    if (container) {
-      container.addEventListener('scroll', checkScrollPosition);
-
-      // Initial scroll to bottom
-      scrollToBottom(true);
-    }
-
-    return () => {
-      if (container) {
-        container.removeEventListener('scroll', checkScrollPosition);
-      }
-    };
+    if (!container) return;
+    container.addEventListener('scroll', checkScrollPosition);
+    // initial position
+    scrollToBottom(true);
+    return () => container.removeEventListener('scroll', checkScrollPosition);
   }, [checkScrollPosition, scrollToBottom]);
+
+  // Double rAF when messages array changes
+  useEffect(() => {
+    if (!messages?.length || disableAutoPin) return;
+    let f1: number;
+    let f2: number;
+    f1 = requestAnimationFrame(() => {
+      f2 = requestAnimationFrame(() => {
+        pinToBottom();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(f1);
+      cancelAnimationFrame(f2);
+    };
+  }, [messages, pinToBottom, disableAutoPin]);
+
+  // ResizeObserver on messagesWrapper for dynamic height changes
+  useEffect(() => {
+    if (disableAutoPin) return;
+    const container = scrollContainer.current;
+    const wrapper = messagesWrapperRef.current;
+    if (!container || !wrapper) return;
+
+    const isNearBottom = () =>
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      autoPinThreshold;
+
+    let raf: number | null = null;
+    const ro = new ResizeObserver(() => {
+      if (!container) return;
+      if (isNearBottom()) {
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => pinToBottom());
+      }
+    });
+    ro.observe(wrapper);
+    return () => {
+      ro.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [pinToBottom, autoPinThreshold, disableAutoPin]);
 
   return {
     scrollContainer,
+    messagesWrapperRef,
     isAtBottom,
     showScrollButton,
     scrollToBottom,
