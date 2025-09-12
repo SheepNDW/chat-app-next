@@ -82,6 +82,10 @@
     background-color: var(--color-gray-100);
     margin-top: 0.5rem;
   }
+
+  [data-code-block-header] {
+    padding: 0.5rem;
+  }
 }
 
 .dark {
