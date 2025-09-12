@@ -2,6 +2,7 @@ import ProjectCard from '@/components/project/project-card';
 import { getProjectById } from '@/lib/actions/project.actions';
 import { MessageSquare } from 'lucide-react';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 export async function generateMetadata(
   props: PageProps<'/projects/[projectId]'>
@@ -19,6 +20,9 @@ export default async function ProjectDetailPage(
 ) {
   const { projectId } = await props.params;
   const project = await getProjectById(projectId);
+
+  if (!project) notFound();
+
   const chats = project?.chats || [];
 
   return (

@@ -118,6 +118,19 @@ export async function updateChat(
   id: string,
   data: { title?: string; projectId?: string; updatedAt?: Date }
 ) {
+  const session = await auth();
+  const userId = session?.user?.dbUserId;
+
+  if (!userId) {
+    throw new Error('Not authenticated');
+  }
+
+  const chat = await getChatByIdForUser(id, userId);
+
+  if (!chat) {
+    throw new Error('Chat not found');
+  }
+
   const updated = await prisma.chat.update({
     where: {
       id,
@@ -158,4 +171,14 @@ export async function createChatAndRedirect(
       ? `/projects/${chat.projectId}/chats/${chat.id}`
       : `/chats/${chat.id}`
   );
+}
+
+export async function assignChatToProject(chatId: string, projectId: string) {
+  const updatedChat = await updateChat(chatId, { projectId });
+
+  if (!updatedChat.projectId) {
+    throw new Error('Failed to assign chat to project');
+  }
+
+  redirect(`/projects/${updatedChat.projectId}/chats/${updatedChat.id}`);
 }
