@@ -1,7 +1,9 @@
 'use server';
 
+import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import type { Project, ProjectWithChats } from '@/types';
+import { redirect } from 'next/navigation';
 
 export async function getAllProjects(): Promise<Project[]> {
   return await prisma.project.findMany({
@@ -47,14 +49,17 @@ export async function getProjectByIdForUser(
   });
 }
 
-export async function createProject(data: {
-  name: string;
-  userId: string;
-}): Promise<Project> {
+export async function createProject(data: { name: string }): Promise<Project> {
+  const session = await auth();
+  const userId = session?.user?.dbUserId;
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
+
   return await prisma.project.create({
     data: {
       name: data.name,
-      userId: data.userId,
+      userId,
     },
   });
 }
@@ -76,4 +81,14 @@ export async function deleteProject(id: string) {
   return await prisma.project.delete({
     where: { id },
   });
+}
+
+export async function createProjectAndRedirect(options: { name: string }) {
+  const project = await createProject({ name: options.name });
+
+  if (!project || !project.id) {
+    throw new Error('Failed to create project');
+  }
+
+  redirect(`/projects/${project.id}`);
 }
