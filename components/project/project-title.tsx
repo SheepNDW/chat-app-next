@@ -4,9 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { renameProjectAction } from '@/lib/actions/project.actions';
 import { cn } from '@/lib/utils';
-import { Check, Pencil, X, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState, useTransition } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { Check, Loader2, Pencil, X } from 'lucide-react';
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 
 interface ProjectTitleProps {
   projectId: string;
@@ -26,7 +31,10 @@ export function ProjectTitle({
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(name);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [formState, formAction] = useFormState(renameProjectAction, undefined);
+  const [formState, formAction] = useActionState(
+    renameProjectAction,
+    undefined
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
