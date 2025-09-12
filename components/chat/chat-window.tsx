@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { ArrowDown, FolderPlus } from 'lucide-react';
-import { useLayoutEffect, useState } from 'react';
+import { useState } from 'react';
 import ChatInput from './chat-input';
 import { useChatScroll } from './useChatScroll';
 
@@ -15,20 +15,18 @@ function ChatWindow() {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
-  const { scrollContainer, showScrollButton, scrollToBottom, pinToBottom } =
-    useChatScroll();
+  const {
+    scrollContainer,
+    messagesWrapperRef,
+    showScrollButton,
+    scrollToBottom,
+  } = useChatScroll({ messages });
 
   async function handleSendMessage(message: string) {
     setIsTyping(true);
     await sendMessage(message);
     setIsTyping(false);
   }
-
-  useLayoutEffect(() => {
-    if (messages.length > 0) {
-      pinToBottom();
-    }
-  }, [messages, pinToBottom]);
 
   return (
     <div
@@ -59,14 +57,17 @@ function ChatWindow() {
                 size="sm"
                 className="gap-2"
                 onClick={() => setAssignModalOpen(true)}
-                disabled={!chat?.id || !!chat?.projectId}
+                disabled={!chat?.id}
               >
                 <FolderPlus className="size-4" />
-                {chat?.projectId ? 'Assigned' : 'Assign to Project'}
+                Assign to Project
               </Button>
             </div>
 
-            <div className="flex flex-col gap-4 mb-6 overflow-y-auto pb-32">
+            <div
+              ref={messagesWrapperRef}
+              className="flex flex-col gap-4 mb-6 overflow-y-auto pb-16"
+            >
               {messages.map((message) => (
                 <div
                   key={message.id}
