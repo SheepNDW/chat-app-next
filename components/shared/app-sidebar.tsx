@@ -1,13 +1,12 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent } from '@/components/ui/sidebar';
 import { filterChatsByDateRange } from '@/lib/utils';
 import { Chat, Project } from '@/types';
-import { FolderPlus } from 'lucide-react';
 import ChatGroups from './sidebar/chat-groups';
 import NewChatButton from './sidebar/new-chat-button';
+import NewProjectButton from './sidebar/new-project-button';
 import ProjectList from './sidebar/project-list';
 
 export default function AppSidebar({
@@ -33,10 +32,7 @@ export default function AppSidebar({
   return (
     <Sidebar>
       <SidebarContent className="overflow-y-auto p-4">
-        <Button size="sm" variant="outline" className="mb-4 w-full">
-          <FolderPlus className="h-4 w-4" />
-          New Project
-        </Button>
+        <NewProjectButton />
 
         {projects.length > 0 ? (
           <ProjectList projects={projects} chats={chats} />
