@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import type { Project, ProjectWithChats } from '@/types';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 
 export async function getAllProjects(): Promise<Project[]> {
   return await prisma.project.findMany({
@@ -67,20 +68,42 @@ export async function createProject(data: { name: string }): Promise<Project> {
 export async function updateProject(
   id: string,
   data: { name: string }
-): Promise<Project | null> {
-  return await prisma.project.update({
-    where: { id },
-    data: {
-      name: data.name,
-      updatedAt: new Date(),
-    },
+): Promise<Project> {
+  const session = await auth();
+  const userId = session?.user?.dbUserId;
+  if (!userId) throw new Error('User not authenticated');
+
+  const trimmed = data.name.trim();
+  if (!trimmed) throw new Error('Project name cannot be empty');
+
+  const existing = await prisma.project.findFirst({
+    where: { id, userId },
+    select: { id: true },
   });
+  if (!existing) throw new Error('Project not found');
+
+  const updated = await prisma.project.update({
+    where: { id },
+    data: { name: trimmed, updatedAt: new Date() },
+  });
+
+  revalidatePath(`/projects/${id}`);
+  revalidatePath('/projects');
+
+  return updated;
 }
 
 export async function deleteProject(id: string) {
   return await prisma.project.delete({
     where: { id },
   });
+}
+
+export async function renameProject(options: {
+  projectId: string;
+  name: string;
+}) {
+  return updateProject(options.projectId, { name: options.name });
 }
 
 export async function createProjectAndRedirect(options: { name: string }) {
