@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent } from '@/components/ui/sidebar';
 import { filterChatsByDateRange } from '@/lib/utils';
 import { Chat, Project } from '@/types';
-import { FolderPlus, SquarePen } from 'lucide-react';
+import { FolderPlus } from 'lucide-react';
 import ChatGroups from './sidebar/chat-groups';
+import NewChatButton from './sidebar/new-chat-button';
 import ProjectList from './sidebar/project-list';
 
 export default function AppSidebar({
@@ -50,10 +51,7 @@ export default function AppSidebar({
           </>
         )}
 
-        <Button size="sm" variant="outline" className="mt-4 w-full">
-          <SquarePen className="h-4 w-4" />
-          New Chat
-        </Button>
+        <NewChatButton />
 
         {chatsWithoutProject.length > 0 ? (
           <ChatGroups grouped={grouped} />
