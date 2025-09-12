@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { createChatAndRedirect } from '@/lib/actions/chat.actions';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -11,6 +12,11 @@ export default function ProjectHeader({
   projectName: string;
 }) {
   const { projectId, id } = useParams();
+
+  async function createNewChat() {
+    if (!projectId) return;
+    createChatAndRedirect({ projectId: String(projectId) });
+  }
 
   return (
     <div className="flex items-start justify-between mb-6 pb-4 border-b">
@@ -32,10 +38,14 @@ export default function ProjectHeader({
           )}
         </div>
       </div>
-      <Button>
-        <Plus className="h-4 w-4" />
-        New Chat
-      </Button>
+      {!id && (
+        <form action={createNewChat}>
+          <Button>
+            <Plus className="h-4 w-4" />
+            New Chat
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
