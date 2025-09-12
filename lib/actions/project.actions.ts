@@ -99,13 +99,6 @@ export async function deleteProject(id: string) {
   });
 }
 
-export async function renameProject(options: {
-  projectId: string;
-  name: string;
-}) {
-  return updateProject(options.projectId, { name: options.name });
-}
-
 export async function createProjectAndRedirect(options: { name: string }) {
   const project = await createProject({ name: options.name });
 
@@ -114,4 +107,22 @@ export async function createProjectAndRedirect(options: { name: string }) {
   }
 
   redirect(`/projects/${project.id}`);
+}
+
+// Server action usable with useFormState for renaming a project via <form>
+// Expects fields: projectId, name
+export async function renameProjectAction(
+  _prevState: { ok: boolean; name?: string; error?: string } | undefined,
+  formData: FormData
+): Promise<{ ok: boolean; name?: string; error?: string }> {
+  try {
+    const projectId = String(formData.get('projectId') || '');
+    const name = String(formData.get('name') || '').trim();
+    if (!projectId) return { ok: false, error: 'Missing project id' };
+    if (!name) return { ok: false, error: 'Name cannot be empty' };
+    const updated = await updateProject(projectId, { name });
+    return { ok: true, name: updated.name };
+  } catch (e: any) {
+    return { ok: false, error: e.message || 'Rename failed' };
+  }
 }

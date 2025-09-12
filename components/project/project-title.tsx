@@ -2,10 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { renameProject } from '@/lib/actions/project.actions';
+import { renameProjectAction } from '@/lib/actions/project.actions';
 import { cn } from '@/lib/utils';
-import { Check, Pencil, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Check, Pencil, X, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 
 interface ProjectTitleProps {
   projectId: string;
@@ -25,8 +26,9 @@ export function ProjectTitle({
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(name);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formState, formAction] = useFormState(renameProjectAction, undefined);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     setValue(name);
@@ -39,7 +41,7 @@ export function ProjectTitle({
     }
   }, [isEditing]);
 
-  async function submit() {
+  async function submitViaClient() {
     if (!isEditing) return;
     const trimmed = value.trim();
     if (!trimmed || trimmed === name) {
@@ -47,17 +49,13 @@ export function ProjectTitle({
       setValue(name);
       return;
     }
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      await renameProject({ projectId, name: trimmed });
-      onRenamed?.(trimmed);
-      setIsEditing(false);
-    } catch (e: any) {
-      setError(e.message || 'Rename failed');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Use startTransition to allow optimistic UI (close editor immediately)
+    startTransition(() => {
+      const fd = new FormData();
+      fd.append('projectId', projectId);
+      fd.append('name', trimmed);
+      formAction(fd);
+    });
   }
 
   function cancel() {
@@ -69,12 +67,26 @@ export function ProjectTitle({
   function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      submit();
+      submitViaClient();
     } else if (e.key === 'Escape') {
       e.preventDefault();
       cancel();
     }
   }
+
+  useEffect(() => {
+    if (formState?.ok) {
+      // Sync local name & exit edit mode
+      if (formState.name) {
+        onRenamed?.(formState.name);
+        setValue(formState.name);
+      }
+      setIsEditing(false);
+      setError(null);
+    } else if (formState?.error) {
+      setError(formState.error);
+    }
+  }, [formState, onRenamed]);
 
   if (!isEditing) {
     return (
@@ -95,13 +107,22 @@ export function ProjectTitle({
   }
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        e.preventDefault();
+        submitViaClient();
+      }}
+      className={cn('flex items-center gap-2', className)}
+    >
+      <input type="hidden" name="projectId" value={projectId} />
       <Input
         ref={inputRef}
+        name="name"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKey}
-        disabled={isSubmitting}
+        disabled={isPending}
         className="h-9 text-lg"
       />
       <div className="flex items-center gap-1">
@@ -109,7 +130,7 @@ export function ProjectTitle({
           size="icon"
           variant="ghost"
           type="button"
-          disabled={isSubmitting}
+          disabled={isPending}
           onClick={cancel}
           aria-label="Cancel rename"
         >
@@ -118,15 +139,18 @@ export function ProjectTitle({
         <Button
           size="icon"
           variant="ghost"
-          type="button"
-          disabled={isSubmitting}
-          onClick={submit}
+          type="submit"
+          disabled={isPending}
           aria-label="Confirm rename"
         >
-          <Check className="h-4 w-4" />
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Check className="h-4 w-4" />
+          )}
         </Button>
       </div>
       {error && <span className="text-xs text-destructive ml-1">{error}</span>}
-    </div>
+    </form>
   );
 }
