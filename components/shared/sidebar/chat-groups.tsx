@@ -41,7 +41,7 @@ export default function ChatGroups({
                       key={chat.id}
                       href={`${basePath}/${chat.id}`}
                       label={chat.title || 'Untitled Chat'}
-                      active={currentChatId === chat.id}
+                      isActive={currentChatId === chat.id}
                     />
                   ))}
                 </SidebarMenu>

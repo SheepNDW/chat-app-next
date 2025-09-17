@@ -8,23 +8,21 @@ import { ReactNode } from 'react';
 interface ChatNavItemProps {
   href: string;
   label: string;
-  active?: boolean;
+  isActive?: boolean;
   icon?: ReactNode;
   shallow?: boolean;
-  className?: string; // extra classes for the root SidebarMenuItem
 }
 
 export default function ChatNavItem({
   href,
   label,
-  active,
+  isActive,
   icon,
   shallow,
-  className,
 }: ChatNavItemProps) {
   return (
-    <SidebarMenuItem className={cn(active && 'bg-muted rounded-md', className)}>
-      <SidebarMenuButton asChild>
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive}>
         <Link href={{ pathname: href }} shallow={shallow}>
           {icon ? (
             <span className="mr-2 inline-flex items-center">{icon}</span>
