@@ -3,7 +3,10 @@ import { getChatByIdForUser, updateChat } from '@/lib/actions/chat.actions';
 import { createOpenAIModel, generateChatTitle } from '@/lib/ai-service';
 import { UpdateChatTitleSchema } from '@/lib/schemas/validators';
 
-export async function POST(req: Request, ctx: any) {
+export async function POST(
+  req: Request,
+  ctx: RouteContext<'/api/chats/[id]/title'>
+) {
   try {
     const session = await auth();
     const userId = session?.user?.dbUserId;
@@ -16,13 +19,11 @@ export async function POST(req: Request, ctx: any) {
       return Response.json({ error: 'Missing chat id' }, { status: 400 });
     }
 
-    // Ownership check (and existence)
     const chat = await getChatByIdForUser(id, userId);
     if (!chat) {
       return Response.json({ error: 'Chat not found' }, { status: 404 });
     }
 
-    // Validate body
     const json = await req.json().catch(() => null);
     const parsed = UpdateChatTitleSchema.safeParse(json);
     if (!parsed.success) {
@@ -39,7 +40,6 @@ export async function POST(req: Request, ctx: any) {
 
     const model = createOpenAIModel({ apiKey });
     const title = await generateChatTitle(model, parsed.data.message);
-
     const updated = await updateChat(id, { title });
     return Response.json({ chat: updated });
   } catch (error) {

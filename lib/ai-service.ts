@@ -1,12 +1,17 @@
 import 'server-only';
 
+import type { Message } from '@/types';
 import { createOpenAI } from '@ai-sdk/openai';
 import {
   generateText,
   streamText,
-  type LanguageModelV1,
-  type Message,
+  type LanguageModel,
+  type ModelMessage,
 } from 'ai';
+
+function toModelMessages(msgs: Message[]): ModelMessage[] {
+  return msgs.map((m) => ({ role: m.role, content: m.content }));
+}
 
 export const createOpenAIModel = ({
   apiKey,
@@ -22,7 +27,7 @@ export const createOpenAIModel = ({
 };
 
 export async function generateChatResponse(
-  model: LanguageModelV1,
+  model: LanguageModel,
   messages: Message[]
 ) {
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -31,14 +36,14 @@ export async function generateChatResponse(
 
   const response = await generateText({
     model,
-    messages,
+    messages: toModelMessages(messages),
   });
 
   return response.text.trim();
 }
 
 export async function generateChatTitle(
-  model: LanguageModelV1,
+  model: LanguageModel,
   firstMessage: string
 ): Promise<string> {
   const response = await generateText({
@@ -54,7 +59,7 @@ export async function generateChatTitle(
         content: firstMessage.slice(0, 500),
       },
     ],
-    maxTokens: 16,
+    maxOutputTokens: 16,
     temperature: 0.3,
   });
 
@@ -62,12 +67,12 @@ export async function generateChatTitle(
 }
 
 export async function streamChatResponse(
-  model: LanguageModelV1,
+  model: LanguageModel,
   messages: Message[]
 ) {
   if (!Array.isArray(messages) || messages.length === 0) {
     throw new Error('Invalid messages format');
   }
 
-  return streamText({ model, messages }).textStream;
+  return streamText({ model, messages: toModelMessages(messages) });
 }
