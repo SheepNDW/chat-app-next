@@ -2,11 +2,12 @@ import {
   createMessageForChat,
   getMessagesByChatId,
 } from '@/lib/actions/chat.actions';
-import { createOpenAIModel, streamChatResponse } from '@/lib/ai-service';
+import { createOpenAIModel } from '@/lib/ai-service';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 import { NextRequest } from 'next/server';
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: RouteContext<'/api/chats/[id]/messages/stream'>
 ) {
   try {
@@ -20,46 +21,49 @@ export async function POST(
       );
     }
 
+    const body = await req.json().catch(() => ({}));
+    const clientMessages: UIMessage[] = Array.isArray(body?.messages)
+      ? body.messages
+      : [];
+
     const history = await getMessagesByChatId(id);
-    if (!history.length) {
+    const uiHistory: UIMessage[] = history.map((m) => ({
+      id: m.id,
+      role: m.role as 'user' | 'assistant' | 'system',
+      parts: [{ type: 'text', text: m.content }],
+    }));
+
+    if (!uiHistory.length && !clientMessages.length) {
       return Response.json(
         { error: 'No messages for this chat' },
         { status: 400 }
       );
     }
 
+    const merged = [...uiHistory, ...clientMessages];
+
     const model = createOpenAIModel({ apiKey });
-
-    const aiStream = await streamChatResponse(model, history);
-
-    let full = '';
-    const transformer = new TransformStream({
-      transform(chunk: string, controller) {
-        full += chunk;
-        controller.enqueue(chunk);
-      },
-      async flush() {
-        if (full.trim()) {
-          try {
-            await createMessageForChat({
-              chatId: id,
-              content: full,
-              role: 'assistant',
-            });
-          } catch (err) {
-            console.error('Persist assistant (stream flush) failed:', err);
-          }
-        }
-      },
+    const result = streamText({
+      model,
+      messages: convertToModelMessages(merged),
     });
 
-    const piped = aiStream.pipeThrough(transformer);
-
-    return new Response(piped, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
+    return result.toUIMessageStreamResponse({
+      originalMessages: merged,
+      async onFinish({ messages }) {
+        const last = messages[messages.length - 1];
+        if (last?.role === 'assistant') {
+          const text = last.parts
+            .map((p) => (p.type === 'text' ? p.text : ''))
+            .join('');
+          if (text.trim()) {
+            await createMessageForChat({
+              chatId: id,
+              content: text,
+              role: 'assistant',
+            });
+          }
+        }
       },
     });
   } catch (error) {
