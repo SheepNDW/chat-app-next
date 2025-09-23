@@ -1,71 +1,48 @@
 'use server';
 
-import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import {
+  dbCreateChat,
+  dbCreateMessageForChat,
+  dbDeleteChat,
+  dbUpdateChat,
+} from '@/lib/db/mutations';
+import {
+  dbGetAllChatsByUser,
+  dbGetChatById,
+  dbGetChatByIdForUser,
+  dbGetMessagesByChatId,
+  dbGetProjectById,
+} from '@/lib/db/query';
 import { CreateChatSchema } from '@/lib/schemas/validators';
 import type { ChatWithMessages, Message, MessageRole } from '@/types';
 import { redirect } from 'next/navigation';
+import { requireUserId } from './auth-helpers';
 
 export async function getAllChats() {
-  return await prisma.chat.findMany({
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      project: true,
-      messages: {
-        orderBy: { createdAt: 'asc' },
-        take: 1,
-      },
-    },
-  });
+  const userId = await requireUserId();
+  return dbGetAllChatsByUser(userId);
 }
 
 export async function getAllChatsByUser(
   userId: string
 ): Promise<ChatWithMessages[]> {
-  return await prisma.chat.findMany({
-    where: { userId },
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      project: true,
-      messages: {
-        orderBy: { createdAt: 'asc' },
-        take: 1,
-      },
-    },
-  });
+  return dbGetAllChatsByUser(userId);
 }
 
 export async function getChatById(
   id: string
 ): Promise<ChatWithMessages | null> {
-  return await prisma.chat.findFirst({
-    where: { id },
-    include: {
-      project: true,
-      messages: {
-        orderBy: { createdAt: 'asc' },
-      },
-    },
-  });
+  const userId = await requireUserId();
+  const chat = await dbGetChatById(id);
+  if (!chat || chat.userId !== userId) return null;
+  return chat;
 }
 
 export async function getChatByIdForUser(
   id: string,
   userId: string
 ): Promise<ChatWithMessages | null> {
-  return await prisma.chat.findFirst({
-    where: {
-      id,
-      userId,
-    },
-    include: {
-      project: true,
-      messages: {
-        orderBy: { createdAt: 'asc' },
-        take: 1,
-      },
-    },
-  });
+  return dbGetChatByIdForUser(id, userId);
 }
 
 export async function createMessageForChat({
@@ -77,80 +54,53 @@ export async function createMessageForChat({
   content: string;
   role: MessageRole;
 }) {
-  return await prisma.message.create({
-    data: {
-      content,
-      role,
-      chatId,
-    },
-  });
+  const userId = await requireUserId();
+  const chat = await dbGetChatById(chatId);
+  if (!chat || chat.userId !== userId) throw new Error('Chat not found');
+  return dbCreateMessageForChat({ chatId, content, role });
 }
 
 export async function getMessagesByChatId(chatId: string): Promise<Message[]> {
-  return await prisma.message.findMany({
-    where: { chatId },
-    orderBy: { createdAt: 'asc' },
-  });
+  const userId = await requireUserId();
+  const chat = await dbGetChatById(chatId);
+  if (!chat || chat.userId !== userId) throw new Error('Chat not found');
+  return dbGetMessagesByChatId(chatId);
 }
 
 export async function createChat(data: { title?: string; projectId?: string }) {
-  const session = await auth();
-  const userId = session?.user?.dbUserId;
-  if (!userId) {
-    redirect('/login');
-  }
+  const userId = await requireUserId();
 
   const parsed = CreateChatSchema.parse(data);
 
-  return await prisma.chat.create({
-    data: {
-      ...parsed,
-      userId,
-    },
-    include: {
-      project: true,
-      messages: true,
-    },
-  });
+  if (parsed.projectId) {
+    const project = await dbGetProjectById(parsed.projectId);
+    if (!project || project.userId !== userId)
+      throw new Error('Project not found');
+  }
+
+  return dbCreateChat({ ...parsed, userId });
 }
 
 export async function updateChat(
   id: string,
   data: { title?: string; projectId?: string; updatedAt?: Date }
 ) {
-  const session = await auth();
-  const userId = session?.user?.dbUserId;
+  const userId = await requireUserId();
 
-  if (!userId) {
-    throw new Error('Not authenticated');
-  }
-
-  const chat = await getChatByIdForUser(id, userId);
+  const chat = await dbGetChatByIdForUser(id, userId);
 
   if (!chat) {
     throw new Error('Chat not found');
   }
 
-  const updated = await prisma.chat.update({
-    where: {
-      id,
-    },
-    data,
-    include: {
-      project: true,
-      messages: {
-        orderBy: { createdAt: 'asc' },
-      },
-    },
-  });
-
-  return updated;
+  return dbUpdateChat(id, data);
 }
 
 export async function deleteChat(id: string) {
-  return await prisma.chat.deleteMany({
-    where: { id },
-  });
+  const userId = await requireUserId();
+  const chat = await dbGetChatById(id);
+  if (!chat || chat.userId !== userId) throw new Error('Chat not found');
+  return dbDeleteChat(id);
 }
 
 /**
@@ -174,6 +124,12 @@ export async function createChatAndRedirect(
 }
 
 export async function assignChatToProject(chatId: string, projectId: string) {
+  const userId = await requireUserId();
+  const chat = await dbGetChatById(chatId);
+  if (!chat || chat.userId !== userId) throw new Error('Chat not found');
+  const project = await dbGetProjectById(projectId);
+  if (!project || project.userId !== userId)
+    throw new Error('Project not found');
   const updatedChat = await updateChat(chatId, { projectId });
 
   if (!updatedChat.projectId) {
