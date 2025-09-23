@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import { dbGetAllProjectsByUser } from '@/lib/db/query';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -11,11 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projects = await prisma.project.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-      select: { id: true, name: true, createdAt: true, updatedAt: true },
-    });
+    const projects = await dbGetAllProjectsByUser(userId);
 
     return NextResponse.json(projects);
   } catch (error) {
