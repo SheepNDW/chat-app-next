@@ -2,18 +2,20 @@
 
 import { Button } from '@/components/ui/button';
 import { ArrowDown, FolderPlus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import ChatInput from './chat-input';
 import { useChatScroll } from './useChatScroll';
 
 import { useChatContext } from '@/lib/chat/ChatProvider';
 import MarkdownRender from './markdown-render';
+import StreamingIndicator from './streaming-indicator';
 import AssignToProjectModal from './assign-to-project-modal';
 
 function ChatWindow() {
-  const { messages, sendMessage, isStreaming, chat } = useChatContext();
+  const { messages, sendMessage, isStreaming, chat, status } = useChatContext();
   const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  // Local flag only while the synchronous submission is happening (very short)
+  const [sending, setSending] = useState(false);
 
   const {
     scrollContainer,
@@ -22,11 +24,21 @@ function ChatWindow() {
     scrollToBottom,
   } = useChatScroll({ messages });
 
-  async function handleSendMessage(message: string) {
-    setIsTyping(true);
-    await sendMessage(message);
-    setIsTyping(false);
-  }
+  const handleSendMessage = useCallback(
+    async (message: string) => {
+      if (!message.trim()) return;
+      setSending(true);
+      try {
+        await sendMessage(message);
+      } finally {
+        // We rely on status to show streaming; clear local flag immediately after dispatch
+        setSending(false);
+      }
+    },
+    [sendMessage]
+  );
+
+  const isBusy = sending || status === 'submitted' || isStreaming;
 
   return (
     <div
@@ -40,10 +52,7 @@ function ChatWindow() {
               <h2 className="text-xl font-medium text-muted-foreground text-center">
                 Start your chat
               </h2>
-              <ChatInput
-                onSendMessage={handleSendMessage}
-                isBusy={isStreaming || isTyping}
-              />
+              <ChatInput onSendMessage={handleSendMessage} isBusy={isBusy} />
             </div>
           </div>
         ) : (
@@ -86,12 +95,7 @@ function ChatWindow() {
                   )}
                 </div>
               ))}
-
-              {(isTyping || isStreaming) && (
-                <span className="inline-block animate-pulse ml-1 text-muted-foreground">
-                  &#9611;
-                </span>
-              )}
+              <StreamingIndicator active={isBusy} />
             </div>
 
             <div className="fixed bottom-6 max-w-[768px] w-[calc(100%-3rem)] z-10">
@@ -107,10 +111,7 @@ function ChatWindow() {
                   </Button>
                 )}
               </div>
-              <ChatInput
-                onSendMessage={handleSendMessage}
-                isBusy={isStreaming || isTyping}
-              />
+              <ChatInput onSendMessage={handleSendMessage} isBusy={isBusy} />
             </div>
             <AssignToProjectModal
               chatId={chat?.id || ''}
