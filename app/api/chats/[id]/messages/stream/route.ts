@@ -26,6 +26,25 @@ export async function POST(
       ? body.messages
       : [];
 
+    // Persist the last user message if it does not exist in DB yet.
+    const lastClient = clientMessages[clientMessages.length - 1];
+    if (lastClient && lastClient.role === 'user') {
+      const historyCheck = await getMessagesByChatId(id);
+      const alreadyExists = historyCheck.some((m) => m.id === lastClient.id);
+      if (!alreadyExists) {
+        const text = lastClient.parts
+          .map((p) => (p.type === 'text' ? p.text : ''))
+          .join('');
+        if (text.trim()) {
+          await createMessageForChat({
+            chatId: id,
+            content: text,
+            role: 'user',
+          });
+        }
+      }
+    }
+
     const history = await getMessagesByChatId(id);
     const uiHistory: UIMessage[] = history.map((m) => ({
       id: m.id,
