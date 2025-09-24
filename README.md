@@ -10,7 +10,7 @@
 | -------------- | ----------------------------------------------------------------- |
 | 認證           | GitHub OAuth via `next-auth` (JWT strategy)                       |
 | 使用者資料     | 自動建立 / 對應 GitHub 使用者 (providerId)                        |
-| 聊天           | 建立對話、AI 回覆、串流輸出 (`TransformStream`) 保存完整訊息      |
+| 聊天           | 建立對話、AI 回覆、`@ai-sdk/react` 串流 (`DefaultChatTransport`)  |
 | AI 標題        | 根據第一則訊息自動生成 3 個詞以內標題                             |
 | 專案           | 建立 / 重新命名專案，將聊天指派到專案 (多對一)                    |
 | UI             | Shadcn UI + Tailwind CSS 4 + 深色 / 淺色主題 `next-themes`        |
@@ -28,7 +28,7 @@
 - Database: PostgreSQL + `Prisma 6`
 - AI SDK: `ai` + `@ai-sdk/openai` (model: `gpt-4o-mini` 可調整)
 - Styling: Shadcn UI, Tailwind CSS 4,
-- State (Chat): 自訂 hook + Context Provider
+- State (Chat): `@ai-sdk/react (useChat)` + 輕量 Context Provider 封裝
 - Validation: `zod`
 - Testing: `vitest`, `@testing-library/react`
 
@@ -78,13 +78,41 @@ middleware.ts         # 保護 /chats /projects 相關路徑
 
 ---
 
-## AI / Chat Flow
+## AI / Chat Flow (已遷移至 `@ai-sdk/react`)
 
-1. 前端送出訊息 → 建立 user message → (可選) 呼叫 `/api/chats/[id]/messages/stream`。
-2. 從資料庫載入歷史訊息 `getMessagesByChatId`。
-3. 建立模型 instance: `createOpenAIModel({ apiKey })`。
-4. 串流: `streamChatResponse` 使用 `ai.streamText` → Web Stream → Transform 保存累積文本 (flush 時建立 assistant message)。
-5. 標題生成：`/api/chats/[id]/title` 根據第一則 user message 產出 3 個詞以內標題。
+Client 端不再自行維護 reducer；改用 `useChat` 提供的 UI message 狀態，並透過自訂 `ChatProvider` 映射到資料庫訊息模型。
+
+1. `ChatProvider` 初始化：將既有資料庫訊息轉為 `UIMessage[]` 傳給 `useChat({ id, transport })`。
+2. 使用者送出訊息：`useChat.sendMessage({ text })` 直接呼叫，`DefaultChatTransport` 以 `POST /api/chats/[id]/messages/stream` 串流回傳 token。
+3. Server 端 (`/api/chats/[id]/messages/stream`): 使用 `ai.streamText` (OpenAI model) 逐步寫入 `ReadableStream`，並在 stream 結束 (flush) 後一次性持久化完整 assistant message 進資料庫。
+4. Client 端即時接收增量 token → `useChat` 合併為最新 `uiMessages` → `ChatProvider` 轉換為 domain `Message` 物件供 UI。
+5. 標題生成：當第一則使用者訊息存在且 Chat 尚無標題時，`ChatProvider` 會呼叫 `/api/chats/[id]/title` 取得 ≤ 3 詞標題並更新。
+6. 若需非串流一次性回覆，可改呼叫 `/api/chats/[id]/messages/generate`（目前仍保留）。
+
+關鍵差異：
+- 過去：client 自行組裝 streaming chunks、reducer 累積與最後寫入。
+- 現在：client 交由 `@ai-sdk/react` 處理串流合併；server 還是以 `streamText` 控制 flush 時機與寫入。
+- 簡化：少掉自訂 reducer、型別同步成本，並獲得內建錯誤 / status (`status === 'streaming'`) 與停止 `stop()` 能力。
+
+`ChatProvider` 主要責任：
+- 將 `uiMessages` (AI SDK) → 專案 `Message` 介面 (加入 `chatId`, 時間戳)
+- 包裝 `sendMessage` 以過濾空白輸入
+- 自動觸發標題生成
+- 暴露 `isStreaming`, `status`, `error`
+
+範例摘錄 (`lib/chat/ChatProvider.tsx`):
+
+```ts
+const { messages: uiMessages, sendMessage: aiSendMessage, status } = useChat({
+	id: chatId,
+	transport: new DefaultChatTransport({ api: `/api/chats/${chatId}/messages/stream` }),
+});
+
+const wrappedSendMessage = (text: string) => {
+	if (!text.trim()) return;
+	aiSendMessage({ text });
+};
+```
 
 ---
 
@@ -159,7 +187,7 @@ open http://localhost:3000
 - `lib/ai-service.ts`: 封裝 OpenAI model 產生、文字生成、串流文本。
 - `lib/actions/*.ts`: 使用 `use server` 與 Prisma 實作資料存取。
 - `components/chat/*`: 聊天視窗、輸入框、Markdown 渲染、指派專案 Modal。
-- `lib/chat/*`: Chat Provider / hook 管理訊息與送出行為。
+- `lib/chat/*`: Chat Provider 將 `@ai-sdk/react` UI messages 映射為資料庫訊息並處理標題生成、輸入過濾。
 - `middleware.ts`: 受保護路徑登入檢查與回跳。
 - `lib/schemas/validators.ts`: Zod schema 驗證輸入資料。
 
